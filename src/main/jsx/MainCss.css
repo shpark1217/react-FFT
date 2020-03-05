@@ -1,0 +1,11 @@
+iframe{
+    /*pointer-events: none;*/
+    /*margin-left:-30px;*/
+}
+
+.main{
+    background-color: red;
+}
+
+.container{position:relative;float:left;}
+.overlay{top:0;left:0;width:184px;height:129px;position:absolute;}
