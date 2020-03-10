@@ -28,6 +28,5 @@ let trace1 = {
   };
 
   export default function Spectrogram2(){
-    console.log(data);
     return <Plot data={data} layout={layout}/>;
   }

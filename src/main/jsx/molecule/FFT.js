@@ -20,6 +20,8 @@ state = {
 	xArray : [],
 	yArray : [],
 	deltaTimeStart : [],
+	spectogramYarray : [],
+	spectogramZarray : [],
 	buttonClicked : false
 }
 
@@ -35,6 +37,7 @@ shouldComponentUpdate(nextProps, nextState){
 	}
 	*/
 	if(bool == true){
+		let specYarray = linspace(0, nextProps.sampleFreq/2, nextProps.sampleNum/2);
 		this.setState({
 			...this.state,
 			freqAndAmp:
@@ -43,7 +46,8 @@ shouldComponentUpdate(nextProps, nextState){
 				"amp" : nextProps.freqAndAmp.amp
 			},
 			sampleFreq : nextProps.sampleFreq,
-			sampleNum : nextProps.sampleNum
+			sampleNum : nextProps.sampleNum,
+			spectogramYarray : specYarray
 		}, () => this.xData());
 	}
 	return bool;
@@ -61,21 +65,17 @@ xData = () => {
 		arrayX.push(time);
 		time += 1/sampleFreq;
 	}
+	console.log(arrayX[0]);
 	this.setState({
 		...this.state,
 		xArray : xArray.concat(arrayX),
 		deltaTimeStart: deltaTimeStart.concat(arrayX[0])
 	}, () => this.yData());
 }; 
-/*
-샘플링 주파수가 분석대상 주파수 중의 최대 주파수보다 두 배 이상 되어야 하고, 
-샘플링 주파수가 2의 승수꼴이어야 진폭 결과가 정확하고 빠르게 나옴.
-(이유는 정확하게는 모르겠지만, 진폭의 경우 주기별로 계속 값이 쌓이므로 주기가 딱 떨어져야 정확하게 나오는 것이 아닐까 추정. 
-fft 알고리즘은 input data를 2의 승수꼴로 이용하므로 2의 승수꼴일 때 주기가 딱 떨어져서 진폭값이 정확하게 나오는 것이 아닐까 싶다.)
-*/
 
 yData = () => {
-	const {xArray, yArray, sampleFreq, freqAndAmp, sampleNum} = this.state;
+	console.log(this.state.deltaTimeStart);
+	const {xArray, yArray, freqAndAmp, sampleNum} = this.state;
 	let arrayY = new Array();
 	for(let i = 0 ; i < sampleNum ; i++){
 		arrayY[i] = 0;
@@ -93,8 +93,8 @@ yData = () => {
 
 inputSignal = () => {
 	const {xArray, yArray} = this.state;
-	let inputGraph = <Graph xData={this.deepCopy(xArray)} 
-	yData={this.deepCopy(yArray)} 
+	let inputGraph = <Graph xData={deepCopy(xArray)} 
+	yData={deepCopy(yArray)} 
 	name={'원래 Graph'} 
 	color={'red'}/>;
 	/*
@@ -110,12 +110,15 @@ inputSignal = () => {
 		document.getElementById("signalGraph")
 	);
 	this.fftSignal();
+	this.makeZofSpectrogram();
 };
+// fft 그래프를 그려주는 함수
 fftSignal = () => {
 	const {xArray, yArray, sampleFreq} = this.state;
-	if(this.isNumberInteger(Math.log2(yArray.length))){
-		let fftGraph = <Graph xData={this.deepCopy(this.changeXdataToFreq(xArray, sampleFreq))/*.splice(0, changeXdataToFreq(xArray).length/2)*/} 
-		yData={this.deepCopy(this.getFFT(yArray))} name={'FFT Graph (표본 개수 : ' + xArray.length+' 개)'} color={'blue'}/>;
+	let arrayY = deepCopy(yArray);
+	if(isNumberInteger(Math.log2(yArray.length))){
+		let fftGraph = <Graph xData={deepCopy(this.changeXdataToFreq(xArray, sampleFreq))} 
+		yData={deepCopy(this.getFFT(arrayY))} name={'FFT Graph (표본 개수 : ' + xArray.length+' 개)'} color={'blue'}/>;
 		ReactDOM.render(
 			fftGraph,
 			document.getElementById("fftGraph")
@@ -124,7 +127,7 @@ fftSignal = () => {
 };
 // fft 결과의 x축 배열을 만들어주는 함수(주파수 축 생성)
 changeXdataToFreq = (inputArray, samplingFreq) => {
-	return this.linspace(0, samplingFreq/2, inputArray.length/2);
+	return linspace(0, samplingFreq/2, inputArray.length/2);
 };
 
 // fft를 수행하고 후처리까지 해주는 함수
@@ -134,45 +137,37 @@ getFFT = (inputArray) => {
 	for(var i = 0 ; i < array.length ; i++){
 		array[i] = Math.sqrt(Math.pow(array[i][0],2)+Math.pow(array[i][1],2));
 	}
-	array = this.mean(array);
+	array = mean(array);
 	return array.splice(0, array.length/2);
 };
 
-// 배열 원소 평균 내주는 함수
-mean = (inputArray) => {
-	for(var i = 0 ; i < inputArray.length ; i++){
-		inputArray[i] = inputArray[i]*(2/inputArray.length);
+// spectrogram을 그릴 배열을 만들어주는 함수
+makeZofSpectrogram = () => {
+	const {sampleNum, yArray, spectogramZarray} = this.state;
+	let spectogramZarray2 = deepCopy(spectogramZarray);
+	const yArray2 = deepCopy(yArray);
+	let array = this.getFFT(yArray2.splice(yArray2.length - sampleNum, sampleNum));
+	if(spectogramZarray2 == null || spectogramZarray2.length == 0){
+		spectogramZarray2 = new Array(array.length);
+		for(let i = 0 ; i < spectogramZarray2.length ; i++){
+			spectogramZarray2[i] = [];
+		}
 	}
-	return inputArray;
+	for(let i = 0 ; i < array.length ; i++){
+		spectogramZarray2[i].push(array[i]);
+	}
+	this.setState({spectogramZarray : spectogramZarray2}, () => this.drawSpectrogram());
 }
 
-// input number가 정수인지 여부
-isNumberInteger = (num) => {
-	let bool = true;
-	const array = num.toString().split(".");
-	if(array.length == 2){
-		return false;
-	}
-	return bool;
-};
-
-// 시작점, 끝점, 원소 개수를 받아 배열 생성하는 함수
-linspace = (start, end, num) => {
-	let array = new Array();
-	array[0] = start;
-	for(var i = 1 ; i < num ; i++){
-		array[i] = array[i-1] + (end - start)/(num);
-	}
-	return array;
-}
-
-// 배열 딥카피 함수
-deepCopy = (inputArray) => {
-	let array = new Array();
-	for(var i = 0 ; i < inputArray.length ; i++){
-		array[i] = inputArray[i];
-	}
-	return array;
+drawSpectrogram = () => {
+	const {deltaTimeStart, spectogramYarray, spectogramZarray} = this.state;
+	let spectrogram = <Spectrogram xData={deepCopy(deltaTimeStart)} 
+	yData={deepCopy(spectogramYarray)} 
+	zData={deepCopy(spectogramZarray)}/>;
+	ReactDOM.render(
+		spectrogram,
+		document.getElementById("spectrogram")
+	)
 }
 
 render(){
@@ -215,7 +210,8 @@ render(){
 		<span id="signalGraph"></span>
         <span id="fftGraph"></span>
 		{/*<div id="BigGraph">{bigGraph()}</div>*/}
-		<div id="spectrogram"><Spectrogram/></div>
+		<div id="spectrogram">
+		</div>
 		<div id="3dSpectrogram"><Spectrogram2/></div>
 		</div>
 	);
