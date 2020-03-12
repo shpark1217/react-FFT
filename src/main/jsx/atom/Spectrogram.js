@@ -19,7 +19,6 @@ let trace1 = {
 
 
 export default function Spectrogram(props){
-  console.log(props.xData);
   trace1.x = props.xData;
   trace1.y = props.yData;
   trace1.z = props.zData;

@@ -15,7 +15,7 @@ export default class FFTinput extends React.Component {
               "tag" : <div id={0}><input id={'freq0'} name={'freq'} placeholder="주파수"/><input id={'amp0'} name={'amp'} placeholder="진폭"/></div>
             }],
         cnt : 0,
-        sampleFreq : 0,
+        timeInterval : 1,
         sampleNum : 0,
         buttonClicked : false
     }
@@ -63,20 +63,22 @@ export default class FFTinput extends React.Component {
                 "freq":freqs,
                 "amp" : amps
             },
-            sampleFreq : document.getElementById('SampleFreqInput').value,
+            timeInterval : document.getElementById('timeInterval').value,
             sampleNum : document.getElementById('SampleNumInput').value,
             buttonClicked : true
         }, () => this.setState({buttonClicked : false}));
     }
 
     render(){
+        const sampleFreq = this.state.sampleNum/this.state.timeInterval;
         return(
             <React.Fragment>
-                <div>샘플링 주파수(f) : <input id="SampleFreqInput" placeholder="샘플링 주파수"/></div>
-                <div>샘플링 개수(N) : <input id="SampleNumInput" placeholder="샘플링 개수"/></div>
+                <div>샘플링 시간(t) : <input id="timeInterval" placeholder="샘플링 시간"/> (sec)</div>
+                <div>샘플링 개수(N) : <input id="SampleNumInput" placeholder="샘플링 개수"/> (개)</div>
+                <div>샘플링 주파수(f) : {sampleFreq} (Hz)</div>
                 <div>{this.state.inputTag.map(x => x.tag)}</div>
                 <div><button onClick={this.addSignal}>추가</button><button onClick={this.submitSignal}>확인</button></div>
-                <FFT freqAndAmp={this.state.freqAndAmp} sampleFreq={this.state.sampleFreq} 
+                <FFT freqAndAmp={this.state.freqAndAmp} timeInterval={this.state.timeInterval} 
                 sampleNum={this.state.sampleNum} buttonClicked={this.state.buttonClicked}/>
             </React.Fragment>
         );

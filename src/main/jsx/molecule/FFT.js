@@ -17,6 +17,7 @@ state = {
 		},
 	sampleFreq : 1024,
 	sampleNum : 256,
+	timeInterval : 2,
 	xArray : [],
 	yArray : [],
 	deltaTimeStart : [],
@@ -37,7 +38,8 @@ shouldComponentUpdate(nextProps, nextState){
 	}
 	*/
 	if(bool == true){
-		let specYarray = linspace(0, nextProps.sampleFreq/2, nextProps.sampleNum/2);
+		const freq = nextProps.sampleNum/nextProps.timeInterval;
+		const specYarray = linspace(0, freq/2, nextProps.sampleNum/2);
 		this.setState({
 			...this.state,
 			freqAndAmp:
@@ -45,7 +47,8 @@ shouldComponentUpdate(nextProps, nextState){
 				"freq" : nextProps.freqAndAmp.freq,
 				"amp" : nextProps.freqAndAmp.amp
 			},
-			sampleFreq : nextProps.sampleFreq,
+			sampleFreq : freq,
+			timeInterval : nextProps.timeInterval,
 			sampleNum : nextProps.sampleNum,
 			spectogramYarray : specYarray
 		}, () => this.xData());
@@ -53,6 +56,7 @@ shouldComponentUpdate(nextProps, nextState){
 	return bool;
 }
 
+//input signal의 x축 배열을 만들어주는 함수
 xData = () => {  
 	const {xArray, sampleFreq, deltaTimeStart, sampleNum} = this.state;
 	let time = 0;
@@ -73,6 +77,7 @@ xData = () => {
 	}, () => this.yData());
 }; 
 
+//input signal의 y축 배열을 만들어주는 함수
 yData = () => {
 	console.log(this.state.deltaTimeStart);
 	const {xArray, yArray, freqAndAmp, sampleNum} = this.state;
@@ -90,7 +95,7 @@ yData = () => {
 	}, () => this.inputSignal());
 };
 
-
+// input signal 그래프를 그려주는 함수
 inputSignal = () => {
 	const {xArray, yArray} = this.state;
 	let inputGraph = <Graph xData={deepCopy(xArray)} 
@@ -159,6 +164,7 @@ makeZofSpectrogram = () => {
 	this.setState({spectogramZarray : spectogramZarray2}, () => this.drawSpectrogram());
 }
 
+// spectrogram을 그려주는 함수
 drawSpectrogram = () => {
 	const {deltaTimeStart, spectogramYarray, spectogramZarray} = this.state;
 	let spectrogram = <Spectrogram xData={deepCopy(deltaTimeStart)} 
